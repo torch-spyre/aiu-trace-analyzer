@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import re
+import zlib
 from typing import Optional, TYPE_CHECKING
 
 import aiu_trace_analyzer.logger as aiulog
@@ -30,19 +31,35 @@ class TraceEvent(dict):
 
 class GlobalIngestData(object):
     _jobmap = None
+    _job_uris = None
+    _JOBHASH_RANGE = 10000
 
     def __new__(cls):
         if not hasattr(cls, '_instance'):
             cls._instance = super(GlobalIngestData, cls).__new__(cls)
             cls._jobmap = {}
+            cls._job_uris = {}
         return cls._instance
 
     @classmethod
     def add_job_info(cls, source_uri: str, data_dialect: InputDialect = None) -> int:
-        jobhash = hash(source_uri) % 10000
-        if jobhash not in cls._jobmap:
-            cls._jobmap[jobhash] = (Path(source_uri).name, data_dialect)
-        return jobhash
+        '''
+        registers a job and returns its jobhash; the same source_uri always maps to the same jobhash.
+        The hash is stable across processes (unlike hash() on str); different source_uris that
+        collide are moved to the next free slot instead of sharing (and losing) job info.
+        '''
+        if cls._jobmap is None:
+            cls()
+        jobhash = zlib.crc32(source_uri.encode()) % cls._JOBHASH_RANGE
+        for _ in range(cls._JOBHASH_RANGE):
+            if jobhash not in cls._jobmap:
+                cls._jobmap[jobhash] = (Path(source_uri).name, data_dialect)
+                cls._job_uris[jobhash] = source_uri
+                return jobhash
+            if cls._job_uris[jobhash] == source_uri:
+                return jobhash
+            jobhash = (jobhash + 1) % cls._JOBHASH_RANGE
+        raise RuntimeError("no free jobhash available")
 
     @classmethod
     def get_job(cls, jobhash: int) -> str:
