@@ -19,7 +19,7 @@ Trusted Publisher for this repository:
 
 1. Go to the `aiu-trace-analyzer` project on pypi.org → **Manage** → **Publishing**.
 2. Add a new Trusted Publisher with:
-   - **Owner**: `IBM`
+   - **Owner**: `torch-spyre`
    - **Repository**: `aiu-trace-analyzer`
    - **Workflow**: `release.yml`
    - **Environment**: *(leave blank)*
