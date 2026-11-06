@@ -572,9 +572,9 @@ def event_categorizer_update(event: TraceEvent, context: AbstractContext) -> lis
 # (OS pids, device pids, host pids + 1000, hashed string pids) to avoid collisions.
 CATEGORY_PID = 2_000_000_000
 
-# Digits of the slice timestamps (ns resolution). Timestamps of ~1e12 us carry more precision than
-# a double holds, so unrounded slice boundaries and durations show float noise.
-_TS_DIGITS = 3
+# Timestamps are in us and the trace displays ns. The slices are computed on integer ns, so that
+# shared boundaries are exact and durations are clean multiples of 1 ns at any timestamp scale.
+_NS_PER_US = 1000
 
 # Blame priority of overlapping events on the category track, highest first: a time slice is
 # shown as the highest-priority class covering it. Classes not listed rank below all listed ones.
@@ -596,7 +596,7 @@ _PRIORITY_OF_CLASS = {
     str(c): rank for rank, c in enumerate(_CATEGORY_PRIORITY + [c for c in EventClass if c not in _CATEGORY_PRIORITY])
 }
 
-# (start, end, class name)
+# (start, end, class name); integer ns on the category track
 _Slice = tuple[float, float, str]
 
 
@@ -609,7 +609,7 @@ class _PriorityTrack:
     """
 
     def __init__(self) -> None:
-        self.cursor = 0.0
+        self.cursor = 0
         self.active: list[tuple[int, float, str]] = []   # (priority, end, class)
         self.open: Optional[_Slice] = None
 
@@ -661,14 +661,8 @@ class CategoryTrackContext(AbstractHashQueueContext):
         self.jobhash: dict[int, int] = {}
 
     def _slice_events(self, rank: int, pieces: list[_Slice]) -> list[TraceEvent]:
-        # Boundaries are rounded (not ts and dur separately), so that neighbouring slices share
-        # exactly the same boundary value. Slices that vanish by rounding are dropped.
-        events = []
-        for start, end, name in pieces:
-            start, end = round(start, _TS_DIGITS), round(end, _TS_DIGITS)
-            if end > start:
-                events.append(self._slice_event(rank, (start, end, name)))
-        return events
+        # slices that vanish at ns resolution (events closer together than the input can resolve) are dropped
+        return [self._slice_event(rank, piece) for piece in pieces if piece[1] > piece[0]]
 
     def _slice_event(self, rank: int, piece: _Slice) -> TraceEvent:
         start, end, name = piece
@@ -680,8 +674,8 @@ class CategoryTrackContext(AbstractHashQueueContext):
             "ph": "X",
             "name": name,
             "cat": "category",
-            "ts": start,
-            "dur": round(end - start, _TS_DIGITS),
+            "ts": start / _NS_PER_US,
+            "dur": (end - start) / _NS_PER_US,
             "pid": CATEGORY_PID,
             "tid": rank,
             "args": args,
@@ -697,9 +691,10 @@ class CategoryTrackContext(AbstractHashQueueContext):
             self.jobhash.setdefault(rank, event["args"]["jobhash"])
 
         class_name = event["args"]["class"]
+        # each boundary is rounded once; ts and dur are not rounded separately to not double the error
         done = track.add(
-            event["ts"],
-            event["ts"] + event["dur"],
+            round(event["ts"] * _NS_PER_US),
+            round((event["ts"] + event["dur"]) * _NS_PER_US),
             _PRIORITY_OF_CLASS.get(class_name, len(_PRIORITY_OF_CLASS)),
             class_name)
         return self._slice_events(rank, done)
