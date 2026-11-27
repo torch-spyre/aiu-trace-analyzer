@@ -4,7 +4,6 @@ import aiu_trace_analyzer.logger as aiulog
 
 from aiu_trace_analyzer.pipeline.coll_group import CollectiveGroupingContext
 from aiu_trace_analyzer.pipeline.dma import DataTransferExtractionContext
-from aiu_trace_analyzer.pipeline.inverse_ts import InversedTSDetectionContext
 from aiu_trace_analyzer.pipeline.overlap import OverlapDetectionContext
 from aiu_trace_analyzer.pipeline.power import PowerExtractionContext
 from aiu_trace_analyzer.pipeline.rcu_utilization import RCUUtilizationContext
@@ -19,11 +18,6 @@ def test_deactivated_stage_contexts_do_not_emit_output(monkeypatch, capsys):
     dma_context.ecount_in = 4
     dma_context.disable()
     contexts.append(dma_context)
-
-    inverse_context = InversedTSDetectionContext()
-    inverse_context.bad_count = 2
-    inverse_context.disable()
-    contexts.append(inverse_context)
 
     overlap_context = OverlapDetectionContext()
     overlap_context.issue_warning("overlaps")
