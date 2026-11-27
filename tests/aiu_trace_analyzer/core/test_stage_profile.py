@@ -119,3 +119,11 @@ def test_verification_profile_starts_with_sanity_check():
     )
 
     assert profile.profile[0] == ("sanity_check", True)
+
+
+def test_torch_minimal_disables_legacy_launch_flows(torch_minimal_profile):
+    profile = StageProfile.from_json(torch_minimal_profile)
+    stages = dict(profile.profile)
+
+    assert stages["launch_flow_collect"] is False
+    assert stages["launch_flow_create_missing"] is False
