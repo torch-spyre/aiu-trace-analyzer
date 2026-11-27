@@ -32,10 +32,8 @@ from aiu_trace_analyzer.pipeline.be_pair import EventPairDetectionContext
 
 # import the separated contexts:
 from aiu_trace_analyzer.pipeline.overlap import OverlapDetectionContext, TSSequenceContext
-from aiu_trace_analyzer.pipeline.inverse_ts import InversedTSDetectionContext
 from aiu_trace_analyzer.pipeline.normalize import NormalizationContext, EventLimiter, RoundtripMergeContext
 from aiu_trace_analyzer.pipeline.sort import EventSortingContext
-from aiu_trace_analyzer.pipeline.make_slice import SliceCreationContext
 from aiu_trace_analyzer.pipeline.power import PowerExtractionContext
 from aiu_trace_analyzer.pipeline.tid_mapping import TIDMappingContext
 from aiu_trace_analyzer.pipeline.filter import FilterPatternEventContext
@@ -70,9 +68,7 @@ from aiu_trace_analyzer.pipeline.overlap import (
     assert_ts_sequence,
     assert_global_ts_sequence,
     recombine_cpu_events)
-from aiu_trace_analyzer.pipeline.inverse_ts import drop_timestamp_reversed_events
 from aiu_trace_analyzer.pipeline.sort import sort_events
-from aiu_trace_analyzer.pipeline.make_slice import create_slice_from_BE
 from aiu_trace_analyzer.pipeline.power import extract_power_event, check_power_ts_sequence, compute_power
 from aiu_trace_analyzer.pipeline.filter import processing_filter
 from aiu_trace_analyzer.pipeline.tid_mapping import map_tid_to_range

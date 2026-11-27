@@ -520,17 +520,6 @@ class Acelyzer:
             context=event_pipe.PipelineSanityCheckContext())
 
         ##############################################################
-        # Event preparation, cleanup, and sanitization
-        # register pre-processing: filtern events with broken time stamps (E < B)
-        process.register_stage(
-            callback=event_pipe.drop_timestamp_reversed_events,
-            context=event_pipe.InversedTSDetectionContext())
-        # register pre-processing: turn B/E into X-slices
-        process.register_stage(
-            callback=event_pipe.create_slice_from_BE,
-            context=event_pipe.SliceCreationContext(make_complete=True))
-
-        ##############################################################
         # frequency detection and per-job offset correction
         # and event manipulation/normalization in 2 phases
         normalize_ctx = event_pipe.NormalizationContext(
